@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventario Win Sports</title>
+    <link rel="stylesheet" href="../CSS/styles.css">
+    <script src="../Public/JS/scripts.js" defer></script>
+    <style>
+        .home-main-bg {
+            background: #f3f4f7;
+            border-radius: 18px;
+            box-shadow: 0 4px 32px rgba(0,0,0,0.07);
+            padding: 48px 32px 48px 32px;
+            margin-top: 40px;
+            animation: fadeInBg 1.2s cubic-bezier(.4,0,.2,1);
+        }
+        @keyframes fadeInBg {
+            from { opacity: 0; transform: translateY(40px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .home-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 36px;
+            margin: 0;
+        }
+        @media (max-width: 900px) {
+            .home-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        .home-card {
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            padding: 36px 28px 28px 28px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: box-shadow 0.3s, transform 0.3s, border-color 0.3s;
+            border-top: 4px solid var(--accent, #f50);
+            opacity: 0;
+            transform: translateY(40px) scale(0.98);
+            animation: cardFadeIn 0.8s cubic-bezier(.4,0,.2,1) forwards;
+        }
+        .home-card:nth-child(1) { animation-delay: 0.1s; }
+        .home-card:nth-child(2) { animation-delay: 0.25s; }
+        .home-card:nth-child(3) { animation-delay: 0.4s; }
+        .home-card:nth-child(4) { animation-delay: 0.55s; }
+        @keyframes cardFadeIn {
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .home-card:hover {
+            box-shadow: 0 12px 40px rgba(245,80,0,0.13), 0 2px 16px rgba(0,0,0,0.10);
+            transform: translateY(-8px) scale(1.035);
+            border-top: 4px solid #222;
+        }
+        .home-icon {
+            font-size: 2.5rem;
+            margin-bottom: 18px;
+            color: var(--accent, #f50);
+            opacity: 0.7;
+            transition: color 0.3s, opacity 0.3s;
+        }
+        .home-card:hover .home-icon {
+            color: #222;
+            opacity: 1;
+        }
+        .home-card h3 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin: 0 0 10px 0;
+            color: #222;
+            letter-spacing: 0.5px;
+            transition: color 0.3s;
+        }
+        .home-card:hover h3 {
+            color: var(--accent, #f50);
+        }
+        .home-card p {
+            color: #555;
+            font-size: 1rem;
+            margin: 0 0 18px 0;
+            text-align: center;
+            transition: color 0.3s;
+        }
+        .home-card:hover p {
+            color: #222;
+        }
+        .home-card .btn {
+            margin-top: 8px;
+            transition: background 0.3s, color 0.3s, box-shadow 0.3s, transform 0.2s;
+            box-shadow: 0 2px 8px rgba(245,80,0,0.07);
+        }
+        .home-card .btn:hover {
+            background: #fff;
+            color: var(--accent, #f50);
+            box-shadow: 0 4px 16px rgba(245,80,0,0.13);
+            transform: scale(1.07);
+            border: 2px solid var(--accent, #f50);
+        }
+        .section-actions {
+            display: flex;
+            flex-direction: row;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            margin-top: 8px;
+        }
+        .home-titles {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 36px;
+            margin-bottom: 24px;
+        }
+        .home-title {
+            text-align: center;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #333;
+            letter-spacing: 0.5px;
+            margin-bottom: 0;
+            opacity: 0;
+            transform: translateY(-20px);
+            animation: titleFadeIn 0.7s cubic-bezier(.4,0,.2,1) forwards;
+        }
+        .home-title:nth-child(1) { animation-delay: 0.1s; }
+        .home-title:nth-child(2) { animation-delay: 0.2s; }
+        .home-title:nth-child(3) { animation-delay: 0.3s; }
+        .home-title:nth-child(4) { animation-delay: 0.4s; }
+        @keyframes titleFadeIn {
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @media (max-width: 900px) {
+            .home-titles {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="site-header">
+        <div class="container header-inner">
+            <h1 class="brand">Win Sports <span class="accent">Inventario</span></h1>
+            <nav class ="nav">
+                <a href="./Identificadores/Lectores.html">Lectores</a>
+                <a href="./Bases_de_Datos/Base_de_Datos.html">Base de Datos</a>                   
+                <a href="./Guia_Rapida.html">Guía Rápida</a>
+                <a href="./Notificaciones.html">Notificaciones</a>
+            </nav>
+        </div>
+    </header>
+    <main class="container">
+        <div class="home-main-bg">
+            <div class="home-grid">
+                <div class="home-card animate">
+                    <div class="home-icon"></div>
+                    <h3>Base de Datos del Inventario</h3>
+                    <p>Consulta, edita y gestiona todos los elementos registrados en el inventario centralizado.</p>
+                    <div class="section-actions">
+                        <a href="./Bases_de_Datos/Base_de_Datos.html" class="btn primary small">Ver la Base de Datos.</a>
+                        <a href="./Agregar_Datos.html" class="btn primary small">Añadir un nuevo dato.</a>
+                    </div>
+                </div>
+                <div class="home-card animate">
+                    <div class="home-icon"></div>
+                    <h3>Lector de Placas y Lector QR</h3>
+                    <p>Escanea códigos QR o placas de vehículos para identificar y asociar activos rápidamente.</p>
+                    <div class="section-actions">
+                        <a href="./Identificadores/Lectores.html" class="btn primary small">Ingresar.</a>
+                    </div>
+                </div>
+                <div class="home-card animate">
+                    <div class="home-icon"></div>
+                    <h3>Notificaciones</h3>
+                    <p>Revisa los cambios recientes, alertas y novedades del sistema de inventario.</p>
+                    <div class="section-actions">
+                        <a href="./Notificaciones.html" class="btn primary small">Ver Notificaciones</a>
+                    </div>
+                </div>
+                <div class="home-card animate">
+                    <div class="home-icon"></div>
+                    <h3>Guía Rápida</h3>
+                    <p>Aprende a usar el sistema paso a paso y resuelve tus dudas rápidamente.</p>
+                    <div class="section-actions">
+                        <a href="./Guia_Rapida.html" class="btn primary small">Ver Guía</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

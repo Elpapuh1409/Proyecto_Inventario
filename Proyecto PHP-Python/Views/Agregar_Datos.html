@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agregar Datos | Inventario Win Sports</title>
+    <link rel="stylesheet" href="../CSS/styles.css">
+    <script src="../Public/JS/scripts.js" defer></script>
+    <style>
+        .form-container-custom {
+            background: #fff;
+            border-radius: 18px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+            padding: 40px 32px 32px 32px;
+            margin: 0 auto;
+            max-width: 600px;
+        }
+        #formAgregar .filter-group {
+            margin-bottom: 22px;
+        }
+        #formAgregar .filter-input {
+            margin-top: 7px;
+            padding: 12px 14px;
+            border-radius: 8px;
+            border: 2px solid #e8e8e8;
+            font-size: 1rem;
+            background: #f7f7f7;
+            transition: border-color 0.3s;
+        }
+        #formAgregar .filter-input:focus {
+            border-color: var(--accent, #f50);
+            background: #fff;
+        }
+        #formAgregar label {
+            font-weight: 600;
+            color: #333;
+            font-size: 1rem;
+        }
+        #mensajeExito {
+            margin-top: 24px;
+            font-size: 1.05rem;
+            border-left: 4px solid #4caf50;
+            background: #e8f5e9;
+            color: #388e3c !important;
+        }
+    </style>
+</head>
+<body>
+    <header class="site-header">
+        <div class="container header-inner">
+            <h1 class="brand">Win Sports <span class="accent">Agregar Datos</span></h1>
+            <nav class ="nav">
+                <a href="./index.html">Inicio</a>
+                <a href="./Bases_de_Datos/Base_de_Datos.html">Base de Datos</a>
+                <a href="./Identificadores/Lectores.html">Lectores</a>
+                <a href="./Guia_Rapida.html">Guía</a>
+                <a href="./Notificaciones.html">Notificaciones</a>
+            </nav>
+        </div>
+    </header>
+    <main class="container" style="margin-top: 40px;">
+        <section class="database-section animate form-container-custom">
+            <div class="section-header animate" style="margin-bottom: 24px;">
+                <h2>Agregar Nuevo Elemento</h2>
+            </div>
+            <form id="formAgregar" style="display: flex; flex-direction: column; gap: 0; margin: 0;">
+                <div class="filter-group">
+                    <label for="nombre">Nombre del Elemento</label>
+                    <input type="text" id="nombre" name="nombre" class="filter-input" required>
+                </div>
+                <div class="filter-group">
+                    <label for="responsable">Responsable</label>
+                    <input type="text" id="responsable" name="responsable" class="filter-input" required>
+                </div>
+                <div class="filter-group">
+                    <label for="estado">Estado</label>
+                    <select id="estado" name="estado" class="filter-input" required>
+                        <option value="">Selecciona...</option>
+                        <option value="Disponible">Disponible</option>
+                        <option value="En uso">En uso</option>
+                        <option value="En reparación">En reparación</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="fecha">Fecha de Ingreso</label>
+                    <input type="date" id="fecha" name="fecha" class="filter-input" required>
+                </div>
+                <button type="submit" class="btn primary animate" style="margin-top: 10px;">Agregar</button>
+            </form>
+            <div id="mensajeExito" class="note animate" style="display:none;">Elemento agregado correctamente.</div>
+        </section>
+    </main>
+    <script>
+    document.getElementById('formAgregar').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const datos = {
+            nombre: document.getElementById('nombre').value,
+            responsable: document.getElementById('responsable').value,
+            estado: document.getElementById('estado').value,
+            fecha: document.getElementById('fecha').value
+        };
+        enviarDatosInventario(datos);
+        document.getElementById('mensajeExito').style.display = 'block';
+        this.reset();
+        setTimeout(()=>{
+            document.getElementById('mensajeExito').style.display = 'none';
+        }, 2500);
+    });
+    </script>
+</body>
+</html>

@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Base de Datos | Inventario Win Sports</title>
+    <link rel="stylesheet" href="../../CSS/styles.css">
+    <style>
+        .db-toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 10px; }
+        .db-toolbar .spacer { flex: 1; }
+        .db-controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+        .table-wrap { margin: 24px 0; overflow-x: auto; }
+        .error-note { display:none; color:#b00020; border-left:4px solid #b00020; padding:10px 12px; border-radius:8px; }
+        .status-note { display:none; color:#0a5; border-left:4px solid #0a5; padding:10px 12px; border-radius:8px; margin-top:10px; }
+        /* Estado visual */
+        .estado-badge { padding:2px 8px; border-radius:12px; font-size:0.75rem; font-weight:600; display:inline-block; cursor:pointer; user-select:none; }
+        .estado-Disponible .estado-badge { background:#e3f7e9; color:#0a5; border:1px solid #0a5; }
+        .estado-En\ uso .estado-badge { background:#fff4d6; color:#c78500; border:1px solid #c78500; }
+        .estado-En\ reparación .estado-badge { background:#ffe3e3; color:#c62828; border:1px solid #c62828; }
+        /* Alterna tono de fila */
+        .inventory-table tbody tr.estado-Disponible { background:linear-gradient(to right,#f9fffa,#ffffff); }
+        .inventory-table tbody tr.estado-En\ uso { background:linear-gradient(to right,#fffbea,#ffffff); }
+        .inventory-table tbody tr.estado-En\ reparación { background:linear-gradient(to right,#ffecec,#ffffff); }
+        .inventory-table tbody tr:hover { outline:2px solid #2196f3; outline-offset:-2px; }
+    </style>
+</head>
+<body>
+    <header class="site-header">
+        <div class="container header-inner">
+            <h1 class="brand">Win Sports <span class="accent">Inventario</span></h1>
+            <nav class ="nav">
+                <a href="../index.html">Inicio</a>
+                <a href="../Identificadores/Lectores.html">Lectores</a>              
+                <a href="../Guia_Rapida.html">Guía Rápida</a>
+                <a href="../Notificaciones.html">Notificaciones</a>
+            </nav>
+        </div>
+    </header>
+    <main class="site-main">
+        <section class="database-section" style="margin-top: 40px;">
+            <div class="section-header">
+                <h2>Vista de Base de Datos</h2>
+                <div class="db-toolbar">
+                    <div class="db-controls">
+                        <input id="db-search" class="filter-input" type="text" placeholder="Buscar (ID, nombre, responsable)" />
+                        <input id="db-resp-exact" class="filter-input" type="text" placeholder="Responsable exacto" />
+                        <input id="db-date-from" class="filter-input" type="date" placeholder="Desde" />
+                        <input id="db-date-to" class="filter-input" type="date" placeholder="Hasta" />
+                        <button class="btn" id="db-filter-range" type="button">Filtrar Fechas</button>
+                        <select id="db-estado" class="filter-input" style="min-width:180px;">
+                            <option value="">Todos los estados</option>
+                            <option>Disponible</option>
+                            <option>En uso</option>
+                            <option>En reparación</option>
+                        </select>
+                        <button class="btn" id="db-refresh" type="button">Actualizar Página</button>
+                        <select id="db-per-page" class="filter-input" style="min-width:90px;">
+                            <option value="10">10</option>
+                            <option value="20" selected>20</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </select>
+                        <button class="btn" id="db-import-sql" type="button">Importar SQL</button>
+                        <button class="btn" id="db-diagnose" type="button">Diagnóstico BD</button>
+                        <button class="btn" id="db-create-sample" type="button">Crear Datos Ejemplo</button>
+                        <button class="btn" id="db-export-csv" type="button">Exportar CSV</button>
+                        <button class="btn" id="db-export-xlsx" type="button">Exportar XLSX</button>
+                        <button class="btn" id="db-backup" type="button">Crear Backup</button>
+                        <select id="db-backup-select" class="filter-input" style="min-width:200px;">
+                            <option value="">(Selecciona backup)</option>
+                        </select>
+                        <button class="btn" id="db-refresh-backups" type="button">Actualizar Lista</button>
+                        <button class="btn" id="db-restore" type="button">Restaurar Backup</button>
+                        <button class="btn" id="db-download-backup" type="button">Descargar Backup</button>
+                        <button class="btn" id="db-clear" type="button" style="background:#c62828;">Limpiar Tabla</button>
+                        
+                    </div>
+                    <div class="spacer"></div>
+                    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                        <button class="btn" id="db-prev" type="button">&lt; Prev</button>
+                        <span id="db-page-info" style="min-width:120px;text-align:center;font-size:0.85rem;color:#555;">Página 1</span>
+                        <button class="btn" id="db-next" type="button">Next &gt;</button>
+                        <input id="db-goto" class="filter-input" type="number" min="1" placeholder="#" style="width:70px;" />
+                        <button class="btn" id="db-goto-btn" type="button">Ir</button>
+                        <span id="db-counts" style="font-size:0.75rem;color:#333;"></span>
+                    </div>
+                </div>
+            </div>
+            <div id="db-error" class="error-note">No se pudo cargar el inventario desde la base de datos. Inicia el servidor y presiona "Importar SQL" si es la primera vez.</div>
+            <div id="db-status" class="status-note"></div>
+            <div class="table-wrap">
+                                <table class="inventory-table" id="db-table">
+                    <thead>
+                        <tr>
+                            <th data-sort="id">ID</th>
+                            <th data-sort="nombre">Nombre</th>
+                            <th data-sort="responsable">Responsable</th>
+                            <th data-sort="estado">Estado</th>
+                            <th data-sort="fecha">Fecha de Ingreso</th>
+                                                        <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="db-tbody"></tbody>
+                </table>
+            </div>
+                        <div style="margin-top:30px;">
+                            <h3>Crear / Editar Ítem</h3>
+                            <form id="crud-form" onsubmit="return submitCrud(event)" style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;">
+                                <input type="hidden" id="crud-id" />
+                                <div style="flex:1 1 160px;min-width:160px;">
+                                    <label>Nombre<br><input required id="crud-nombre" type="text" /></label>
+                                </div>
+                                <div style="flex:1 1 160px;min-width:160px;">
+                                    <label>Responsable<br><input required id="crud-responsable" type="text" /></label>
+                                </div>
+                                <div style="flex:1 1 160px;min-width:160px;">
+                                    <label>Estado<br>
+                                        <select required id="crud-estado">
+                                            <option value="">-- Seleccionar --</option>
+                                            <option>Disponible</option>
+                                            <option>En uso</option>
+                                            <option>En reparación</option>
+                                        </select>
+                                    </label>
+                                </div>
+                                <div style="flex:1 1 160px;min-width:160px;">
+                                    <label>Fecha<br><input required id="crud-fecha" type="date" /></label>
+                                </div>
+                                <button class="btn" type="submit" id="crud-submit">Crear</button>
+                                <button class="btn" type="button" id="crud-cancel" onclick="resetCrud()" style="display:none;">Cancelar</button>
+                            </form>
+                            <div id="crud-msg" class="status-note" style="margin-top:10px;"></div>
+                        </div>
+        </section>
+    </main>
+    <script>
+        // Rutas correctas cuando el docroot del servidor es la carpeta Public
+        const API_DB = window.location.origin + '/PHP/inventory_db.php';
+        const API_STATUS = window.location.origin + '/PHP/db_status.php';
+        async function apiFetch(url, options){
+            try { const r = await fetch(url, options); if (r.ok) return r; } catch(_) {}
+            // Intento secundario localhost:8000 (por si origen distinto)
+            const alt = 'http://localhost:8000' + url.replace(window.location.origin, '');
+            return fetch(alt, options);
+        }
+    const API_CREATE = window.location.origin + '/PHP/inventory_create.php';
+    const API_UPDATE = window.location.origin + '/PHP/inventory_update.php';
+    const API_DELETE = window.location.origin + '/PHP/inventory_delete.php';
+    const API_CAPTURE = window.location.origin + '/PHP/input_capture.php';
+    const API_CLEAR = window.location.origin + '/PHP/inventory_clear.php';
+    const API_EXPORT_CSV = window.location.origin + '/PHP/inventory_export_csv.php';
+    const API_BACKUP_CREATE = window.location.origin + '/PHP/inventory_backup_create.php';
+    const API_BACKUP_RESTORE = window.location.origin + '/PHP/inventory_backup_restore.php';
+    const API_BACKUP_LIST = window.location.origin + '/PHP/inventory_backup_list.php';
+
+    function renderRows(items){
+        const tb = document.getElementById('db-tbody');
+        tb.innerHTML = items.map(r => `
+            <tr class="estado-${escapeHtml(r.estado)}">
+                <td>${r.id}</td>
+                <td>${r.nombre}</td>
+                <td>${r.responsable}</td>
+                <td><span class="estado-badge" data-estado="${escapeHtml(r.estado)}" title="Filtrar por este estado">${r.estado}</span></td>
+                <td>${r.fecha}</td>
+                <td>
+                  <button class="btn" type="button" onclick="editItem(${r.id}, '${escapeHtml(r.nombre)}', '${escapeHtml(r.responsable)}', '${escapeHtml(r.estado)}', '${escapeHtml(r.fecha)}')">Editar</button>
+                  <button class="btn" type="button" onclick="deleteItem(${r.id})">Eliminar</button>
+                </td>
+            </tr>
+        `).join('');
+    }
+    function escapeHtml(str){ return (str||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+    async function loadData(){
+        const err = document.getElementById('db-error');
+        const q = document.getElementById('db-search').value.trim();
+        const respExact = document.getElementById('db-resp-exact').value.trim();
+        const estado = document.getElementById('db-estado').value.trim();
+        const df = document.getElementById('db-date-from').value.trim();
+        const dt = document.getElementById('db-date-to').value.trim();
+        const perPage = document.getElementById('db-per-page').value;
+        const page = window._inv_page || 1;
+        const params = new URLSearchParams();
+        if (q) params.append('q', q);
+        if (estado) params.append('estado', estado);
+        if (df) params.append('date_from', df);
+        if (dt) params.append('date_to', dt);
+        if (respExact) params.append('responsable_exact', respExact);
+        if (window._inv_sort) params.append('sort', window._inv_sort);
+        if (window._inv_dir) params.append('dir', window._inv_dir);
+        params.append('page', page);
+        params.append('per_page', perPage);
+        const query = params.toString() ? `?${params.toString()}` : '';
+        try {
+            const res = await apiFetch(API_DB + query);
+            const text = await res.text();
+            let json;
+            try { json = JSON.parse(text); }
+            catch(parseErr){
+                if (err) {
+                    err.textContent = 'Error: la respuesta de la BD no es JSON.\n' + text.slice(0,200);
+                    err.style.display='block';
+                }
+                throw new Error('Respuesta no-JSON: ' + text.slice(0,120));
+            }
+            if(!res.ok || !json.success) {
+                if (err) {
+                    err.textContent = 'Error BD: ' + (json && json.error ? json.error : 'HTTP '+res.status) + '\n' + text.slice(0,200);
+                    err.style.display='block';
+                }
+                throw new Error(json && json.error ? json.error : 'Error');
+            }
+            renderRows(json.items||[]);
+            updatePagination(json.page,json.pages,json.total,json.per_page,json.counts,json.sort,json.dir);
+            if (err) err.style.display='none';
+            return (json.items||[]).length;
+        } catch(e){
+            if (err) { err.textContent = 'Error cargando desde BD: ' + (e.message||e); err.style.display='block'; }
+            return 0;
+        }
+    }
+    document.addEventListener('DOMContentLoaded', () => {
+        // Aviso si se abre sin servidor (file://)
+        if (location.protocol === 'file:') {
+            const err = document.getElementById('db-error');
+            if (err) {
+                err.textContent = 'La página está abierta sin servidor (file://). Inicia php -S localhost:8000 -t Public para ejecutar la API.';
+                err.style.display='block';
+            }
+            return; // evitar intentos de fetch que devolverán código fuente
+        }
+        document.getElementById('db-refresh').addEventListener('click', loadData);
+        const btnImport = document.getElementById('db-import-sql');
+        if (btnImport) btnImport.addEventListener('click', importSQL);
+        const btnDiag = document.getElementById('db-diagnose');
+        if (btnDiag) btnDiag.addEventListener('click', diagnoseDB);
+        document.getElementById('db-search').addEventListener('input', () => { clearTimeout(window._dbt); window._dbt=setTimeout(()=>{ window._inv_page=1; loadData(); }, 300); });
+        document.getElementById('db-estado').addEventListener('change', () => { window._inv_page=1; loadData(); });
+        document.getElementById('db-filter-range').addEventListener('click', () => { window._inv_page=1; loadData(); });
+        document.getElementById('db-per-page').addEventListener('change', () => { window._inv_page=1; loadData(); });
+        document.getElementById('db-prev').addEventListener('click', () => { if ((window._inv_page||1) > 1){ window._inv_page--; loadData(); } });
+        document.getElementById('db-next').addEventListener('click', () => { if (window._inv_page < (window._inv_pages||1)){ window._inv_page++; loadData(); } });
+        document.getElementById('db-clear')?.addEventListener('click', clearTable);
+        document.getElementById('db-backup')?.addEventListener('click', createBackup);
+        document.getElementById('db-restore')?.addEventListener('click', restoreBackup);
+        document.getElementById('db-export-csv')?.addEventListener('click', exportCSV);
+        document.getElementById('db-export-xlsx')?.addEventListener('click', exportXLSX);
+        document.getElementById('db-refresh-backups')?.addEventListener('click', loadBackups);
+        loadBackups();
+        document.getElementById('db-download-backup')?.addEventListener('click', downloadSelectedBackup);
+        // Agrega export CSV como opción mediante tecla rápida (Ctrl+E)
+        document.addEventListener('keydown', e => { if (e.ctrlKey && e.key.toLowerCase()==='e'){ exportCSV(); e.preventDefault(); } });
+        document.getElementById('db-goto-btn').addEventListener('click', () => {
+            const v = parseInt(document.getElementById('db-goto').value,10);
+            if (!isNaN(v) && v>=1 && v <= (window._inv_pages||1)){ window._inv_page = v; loadData(); }
+        });
+        initSorting();
+        // Carga inicial; si está vacío ofrece importar datos iniciales
+        loadData().then(count => {
+            if (count === 0) {
+                if (confirm('La tabla está vacía. ¿Importar datos desde el archivo SQL? (Cancelar = ofrecer crear datos de ejemplo)')) {
+                    importSQL();
+                } else {
+                    const ok = document.getElementById('db-status');
+                    if (ok){
+                        ok.textContent = 'Importación cancelada. Puedes usar "Crear Datos Ejemplo" para poblar la tabla.';
+                        ok.style.display='block';
+                        clearTimeout(window._db_status_timer);
+                        window._db_status_timer = setTimeout(()=>{ ok.style.display='none'; },8000);
+                    }
+                }
+            }
+        });
+        initAutoCapture();
+    });
+
+    async function importSQL(){
+        const btn = document.getElementById('db-import-sql');
+        const err = document.getElementById('db-error');
+        const ok = document.getElementById('db-status');
+        if (btn) { btn.disabled = true; btn.textContent = 'Importando...'; }
+        try {
+            const res = await fetch('/PHP/import_sql.php', { method:'POST' });
+            const text = await res.text();
+            let json;
+            try { json = JSON.parse(text); }
+            catch {
+                if (err) {
+                    err.textContent = 'Error: la respuesta al importar SQL no es JSON.\n' + text.slice(0,200);
+                    err.style.display='block';
+                }
+                throw new Error('Respuesta no-JSON al importar SQL');
+            }
+            if (!res.ok || !json.success) {
+                if (err) {
+                    err.textContent = 'Error al importar SQL: ' + (json && json.error ? json.error : 'HTTP '+res.status) + '\n' + text.slice(0,200);
+                    err.style.display='block';
+                }
+                throw new Error((json && json.error) || 'Error al importar SQL');
+            }
+            if (err) { err.style.display='none'; }
+            if (ok) {
+                ok.textContent = `Importación correcta: ${json.rows ?? 'N/A'} filas (driver: ${json.driver ?? 'desconocido'}, archivo: ${json.file ?? 'N/A'})`;
+                ok.style.display = 'block';
+                clearTimeout(window._db_status_timer);
+                window._db_status_timer = setTimeout(() => { ok.style.display = 'none'; }, 6000);
+            }
+            await loadData();
+        } catch (e) {
+            if (err) { err.textContent = 'Error importando SQL: ' + (e.message||e); err.style.display='block'; }
+            const okBox = document.getElementById('db-status'); if (okBox) okBox.style.display='none';
+        } finally {
+            if (btn) { btn.disabled = false; btn.textContent = 'Importar SQL'; }
+        }
+    }
+    async function diagnoseDB(){
+        const err = document.getElementById('db-error');
+        const ok = document.getElementById('db-status');
+        try {
+            const res = await apiFetch(API_STATUS);
+            const text = await res.text();
+            let json;
+            try { json = JSON.parse(text); }
+            catch {
+                if (err) {
+                    err.textContent = 'Error: la respuesta del diagnóstico no es JSON.\n' + text.slice(0,200);
+                    err.style.display='block';
+                }
+                throw new Error('Respuesta no-JSON en diagnóstico');
+            }
+            if (!json.success) {
+                if (err) {
+                    err.textContent = 'Fallo en diagnóstico: ' + (json && json.error ? json.error : 'HTTP '+res.status) + '\n' + text.slice(0,200);
+                    err.style.display='block';
+                }
+                throw new Error(json.error || 'Fallo en diagnóstico');
+            }
+            if (ok) {
+                ok.textContent = `Driver: ${json.driver} | Tabla inventario: ${json.has_table?'OK':'NO'} | Filas: ${json.row_count}`;
+                ok.style.display='block';
+                clearTimeout(window._db_status_timer);
+                window._db_status_timer = setTimeout(()=>{ ok.style.display='none'; },7000);
+            }
+            if (err) err.style.display='none';
+        } catch(e){
+            if (err){ err.textContent = 'Diagnóstico falló: ' + (e.message||e); err.style.display='block'; }
+        }
+    }
+        function editItem(id,nombre,responsable,estado,fecha){
+            document.getElementById('crud-id').value = id;
+            document.getElementById('crud-nombre').value = nombre;
+            document.getElementById('crud-responsable').value = responsable;
+            document.getElementById('crud-estado').value = estado;
+            document.getElementById('crud-fecha').value = fecha;
+            document.getElementById('crud-submit').textContent = 'Actualizar';
+            document.getElementById('crud-cancel').style.display='inline-block';
+        }
+        function resetCrud(){
+            document.getElementById('crud-id').value = '';
+            document.getElementById('crud-nombre').value = '';
+            document.getElementById('crud-responsable').value = '';
+            document.getElementById('crud-estado').value = '';
+            document.getElementById('crud-fecha').value = '';
+            document.getElementById('crud-submit').textContent = 'Crear';
+            document.getElementById('crud-cancel').style.display='none';
+            const msg = document.getElementById('crud-msg'); if (msg) msg.style.display='none';
+        }
+        async function submitCrud(ev){
+            ev.preventDefault();
+            const id = document.getElementById('crud-id').value.trim();
+            const payload = {
+                nombre: document.getElementById('crud-nombre').value.trim(),
+                responsable: document.getElementById('crud-responsable').value.trim(),
+                estado: document.getElementById('crud-estado').value.trim(),
+                fecha: document.getElementById('crud-fecha').value.trim()
+            };
+            const url = id ? API_UPDATE : API_CREATE;
+            if (id) payload.id = id;
+            try {
+                const res = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
+                const text = await res.text();
+                let json;
+                try { json = JSON.parse(text); }
+                catch {
+                    const msg = document.getElementById('crud-msg');
+                    if (msg){ msg.textContent='Fallo: respuesta no-JSON del servidor. '+text.slice(0,200); msg.style.display='block'; msg.style.color='#b00020'; }
+                    throw new Error('Respuesta no-JSON en submit CRUD');
+                }
+                if(!json.success) throw new Error(json.error||'Error');
+                const msg = document.getElementById('crud-msg');
+                if (msg){ msg.textContent = id? 'Ítem actualizado' : 'Ítem creado'; msg.style.display='block'; }
+                resetCrud();
+                await loadData();
+            } catch(e){
+                const msg = document.getElementById('crud-msg'); if (msg){ msg.textContent='Fallo: '+(e.message||e); msg.style.display='block'; msg.style.color='#b00020'; }
+            }
+            return false;
+        }
+        async function deleteItem(id){
+            if(!confirm('¿Eliminar ítem '+id+'?')) return;
+            try {
+                const res = await fetch(API_DELETE, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id})});
+                const text = await res.text();
+                let json;
+                try { json = JSON.parse(text); }
+                catch {
+                    alert('Error: respuesta no-JSON al eliminar. '+text.slice(0,200));
+                    throw new Error('Respuesta no-JSON en delete');
+                }
+                if(!json.success) throw new Error(json.error||'Error eliminando');
+                await loadData();
+            } catch(e){ alert('Error: '+(e.message||e)); }
+        }
+        function initAutoCapture(){
+            const inputs = document.querySelectorAll('#crud-form input[type="text"], #crud-form input[type="date"], #crud-form select');
+            inputs.forEach(inp => {
+                let timer;
+                inp.addEventListener('input', () => {
+                    clearTimeout(timer);
+                    const fieldName = inp.id.replace('crud-','');
+                    const value = inp.value;
+                    timer = setTimeout(()=>{
+                        captureField(fieldName, value, 'inventario_form');
+                    }, 800); // debounce
+                });
+            });
+        }
+        async function captureField(field, value, context){
+            try {
+                await fetch(API_CAPTURE, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({field,value,context})});
+            } catch(_){ /* silencioso */ }
+        }
+
+        // Crear datos de ejemplo sin depender del archivo SQL
+        document.getElementById('db-create-sample')?.addEventListener('click', createSampleData);
+        async function createSampleData(){
+            const btn = document.getElementById('db-create-sample');
+            const ok = document.getElementById('db-status');
+            const err = document.getElementById('db-error');
+            if (btn){ btn.disabled=true; btn.textContent='Creando...'; }
+            const sample = [
+                ['Balón de fútbol','Juan Pérez','Disponible','2025-08-12'],
+                ['Uniforme','María Gómez','En uso','2025-08-15'],
+                ['Botines','Carlos Ruiz','Disponible','2025-09-01'],
+                ['Conos','Ana Torres','En reparación','2025-09-05'],
+                ['Chalecos','Luis Fernández','Disponible','2025-09-10'],
+                ['Cronómetro','Sofía López','En uso','2025-09-12']
+            ];
+            let created = 0;
+            try {
+                for (const [nombre,responsable,estado,fecha] of sample){
+                    const res = await fetch(API_CREATE, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({nombre,responsable,estado,fecha})});
+                    const txt = await res.text();
+                    let j; try { j = JSON.parse(txt); } catch { continue; }
+                    if (j.success) created++;
+                }
+                await loadData();
+                if (ok){
+                    ok.textContent = `Datos de ejemplo creados: ${created}/${sample.length}`;
+                    ok.style.display='block';
+                    clearTimeout(window._db_status_timer);
+                    window._db_status_timer = setTimeout(()=>{ ok.style.display='none'; },7000);
+                }
+                if (err) err.style.display='none';
+            } catch(e){
+                if (err){ err.textContent='Error creando datos ejemplo: '+(e.message||e); err.style.display='block'; }
+            } finally {
+                if (btn){ btn.disabled=false; btn.textContent='Crear Datos Ejemplo'; }
+            }
+        }
+
+        async function clearTable(){
+            if(!confirm('¿Seguro que deseas eliminar TODOS los registros de inventario? Esta acción no se puede deshacer.')) return;
+            const btn = document.getElementById('db-clear');
+            const ok = document.getElementById('db-status');
+            const err = document.getElementById('db-error');
+            if (btn){ btn.disabled=true; btn.textContent='Limpiando...'; }
+            try {
+                const res = await fetch(API_CLEAR, {method:'POST'});
+                const text = await res.text();
+                let json; try { json = JSON.parse(text); } catch { throw new Error('Respuesta no-JSON al limpiar'); }
+                if(!json.success) throw new Error(json.error||'Error limpiando');
+                await loadData();
+                if (ok){
+                    ok.textContent = 'Tabla limpiada correctamente';
+                    ok.style.display='block';
+                    clearTimeout(window._db_status_timer);
+                    window._db_status_timer = setTimeout(()=>{ ok.style.display='none'; },6000);
+                }
+                if (err) err.style.display='none';
+            } catch(e){
+                if (err){ err.textContent='Error limpiando: '+(e.message||e); err.style.display='block'; }
+            } finally {
+                if (btn){ btn.disabled=false; btn.textContent='Limpiar Tabla'; }
+            }
+        }
+
+        async function exportCSV(){
+            try {
+                const q = document.getElementById('db-search').value.trim();
+                const estado = document.getElementById('db-estado').value.trim();
+                const df = document.getElementById('db-date-from').value.trim();
+                const dt = document.getElementById('db-date-to').value.trim();
+                const respExact = document.getElementById('db-resp-exact').value.trim();
+                const sort = window._inv_sort || '';
+                const dir = window._inv_dir || '';
+                const params = new URLSearchParams();
+                if (q) params.append('q', q);
+                if (estado) params.append('estado', estado);
+                if (df) params.append('date_from', df);
+                if (dt) params.append('date_to', dt);
+                if (respExact) params.append('responsable_exact', respExact);
+                if (sort) params.append('sort', sort);
+                if (dir) params.append('dir', dir);
+                const url = API_EXPORT_CSV + (params.toString()? ('?'+params.toString()):'');
+                const res = await fetch(url);
+                if(!res.ok) throw new Error('HTTP '+res.status);
+                const blob = await res.blob();
+                const dlUrl = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = dlUrl; a.download = 'inventario_export.csv'; // servidor define nombre final
+                document.body.appendChild(a); a.click(); a.remove();
+                URL.revokeObjectURL(dlUrl);
+                const ok = document.getElementById('db-status');
+                if (ok){ ok.textContent='CSV exportado'; ok.style.display='block'; clearTimeout(window._db_status_timer); window._db_status_timer=setTimeout(()=>{ok.style.display='none';},5000); }
+            } catch(e){
+                const err = document.getElementById('db-error'); if (err){ err.textContent='Error exportando CSV: '+(e.message||e); err.style.display='block'; }
+            }
+        }
+
+        function updatePagination(page,pages,total,per,counts,sort,dir){
+            window._inv_page = page;
+            window._inv_pages = pages;
+            const info = document.getElementById('db-page-info');
+            if (info){ info.textContent = `Página ${page}/${pages} (${total} ítems)`; }
+            const prev = document.getElementById('db-prev');
+            const next = document.getElementById('db-next');
+            if (prev) prev.disabled = page <= 1;
+            if (next) next.disabled = page >= pages;
+            const cSpan = document.getElementById('db-counts');
+            if (cSpan && counts){ cSpan.textContent = `Disp: ${counts['Disponible']||0} | Uso: ${counts['En uso']||0} | Repara: ${counts['En reparación']||0}`; }
+            applySortIndicators(sort,dir);
+        }
+
+        function initSorting(){
+            document.querySelectorAll('#db-table thead th[data-sort]')?.forEach(th => {
+                th.style.cursor='pointer';
+                th.addEventListener('click', () => {
+                    const key = th.getAttribute('data-sort');
+                    if (!key) return;
+                    if (window._inv_sort === key){
+                        window._inv_dir = (window._inv_dir === 'ASC') ? 'DESC' : 'ASC';
+                    } else {
+                        window._inv_sort = key;
+                        window._inv_dir = 'ASC';
+                    }
+                    window._inv_page = 1;
+                    loadData();
+                });
+            });
+        }
+        function applySortIndicators(sort,dir){
+            document.querySelectorAll('#db-table thead th[data-sort]')?.forEach(th => {
+                const key = th.getAttribute('data-sort');
+                th.textContent = th.getAttribute('data-sort-label') || th.textContent.replace(/[▲▼]$/,'');
+                if (key === sort){
+                    th.textContent += dir === 'ASC' ? ' ▲' : ' ▼';
+                }
+            });
+        }
+
+        // Delegado para clicks en badges de estado
+        document.getElementById('db-tbody').addEventListener('click', function(e){
+            var target = e.target;
+            if (!(target instanceof HTMLElement)) return;
+            var badge = target.closest('.estado-badge');
+            if (!badge) return;
+            var est = badge.getAttribute('data-estado');
+            if (!est) return;
+            var sel = document.getElementById('db-estado');
+            if (sel){
+                if (sel.value === est){ sel.value=''; } else { sel.value = est; }
+                window._inv_page = 1;
+                loadData();
+            }
+        });
+
+        async function exportXLSX(){
+            try {
+                const q = document.getElementById('db-search').value.trim();
+                const estado = document.getElementById('db-estado').value.trim();
+                const df = document.getElementById('db-date-from').value.trim();
+                const dt = document.getElementById('db-date-to').value.trim();
+                const respExact = document.getElementById('db-resp-exact').value.trim();
+                const sort = window._inv_sort || '';
+                const dir = window._inv_dir || '';
+                const params = new URLSearchParams();
+                if (q) params.append('q', q);
+                if (estado) params.append('estado', estado);
+                if (df) params.append('date_from', df);
+                if (dt) params.append('date_to', dt);
+                if (respExact) params.append('responsable_exact', respExact);
+                if (sort) params.append('sort', sort);
+                if (dir) params.append('dir', dir);
+                const url = window.location.origin + '/PHP/inventory_export_xlsx.php' + (params.toString()? ('?'+params.toString()):'');
+                const res = await fetch(url);
+                if(!res.ok) throw new Error('HTTP '+res.status);
+                const blob = await res.blob();
+                const dlUrl = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = dlUrl; a.download = 'inventario_export.xls';
+                document.body.appendChild(a); a.click(); a.remove();
+                URL.revokeObjectURL(dlUrl);
+                const ok = document.getElementById('db-status');
+                if (ok){ ok.textContent='XLSX exportado'; ok.style.display='block'; clearTimeout(window._db_status_timer); window._db_status_timer=setTimeout(()=>{ok.style.display='none';},5000); }
+            } catch(e){
+                const err = document.getElementById('db-error'); if (err){ err.textContent='Error exportando XLSX: '+(e.message||e); err.style.display='block'; }
+            }
+        }
+
+        async function createBackup(){
+            const btn = document.getElementById('db-backup');
+            const ok = document.getElementById('db-status');
+            const err = document.getElementById('db-error');
+            if (btn){ btn.disabled=true; btn.textContent='Creando...'; }
+            try {
+                const res = await fetch(API_BACKUP_CREATE, {method:'POST'});
+                const txt = await res.text();
+                let j; try { j = JSON.parse(txt); } catch { throw new Error('Respuesta no-JSON'); }
+                if(!j.success) throw new Error(j.error||'Error backup');
+                if (ok){ ok.textContent='Backup creado ('+j.count+' ítems)'; ok.style.display='block'; clearTimeout(window._db_status_timer); window._db_status_timer=setTimeout(()=>{ok.style.display='none';},6000); }
+                if (err) err.style.display='none';
+            } catch(e){
+                if (err){ err.textContent='Error creando backup: '+(e.message||e); err.style.display='block'; }
+            } finally {
+                if (btn){ btn.disabled=false; btn.textContent='Crear Backup'; }
+            }
+        }
+
+        async function restoreBackup(){
+            if(!confirm('¿Restaurar el último backup? Se reemplazarán los datos actuales.')) return;
+            const btn = document.getElementById('db-restore');
+            const ok = document.getElementById('db-status');
+            const err = document.getElementById('db-error');
+            if (btn){ btn.disabled=true; btn.textContent='Restaurando...'; }
+            try {
+                const select = document.getElementById('db-backup-select');
+                const file = select && select.value ? select.value : '';
+                const res = await fetch(API_BACKUP_RESTORE, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({file})});
+                const txt = await res.text();
+                let j; try { j = JSON.parse(txt); } catch { throw new Error('Respuesta no-JSON'); }
+                if(!j.success) throw new Error(j.error||'Error restaurando');
+                await loadData();
+                if (ok){ ok.textContent='Backup restaurado ('+j.restored+' ítems) archivo: '+(j.file||'?'); ok.style.display='block'; clearTimeout(window._db_status_timer); window._db_status_timer=setTimeout(()=>{ok.style.display='none';},6000); }
+                if (err) err.style.display='none';
+            } catch(e){
+                if (err){ err.textContent='Error restaurando backup: '+(e.message||e); err.style.display='block'; }
+            } finally {
+                if (btn){ btn.disabled=false; btn.textContent='Restaurar Backup'; }
+            }
+        }
+
+        async function loadBackups(){
+            const select = document.getElementById('db-backup-select');
+            if (!select) return;
+            select.innerHTML = '<option value="">(Selecciona backup)</option>';
+            try {
+                const res = await fetch(API_BACKUP_LIST);
+                const txt = await res.text();
+                let j; try { j = JSON.parse(txt); } catch { throw new Error('Respuesta no-JSON'); }
+                if(!j.success) throw new Error(j.error||'Error listado');
+                j.backups.forEach(b => {
+                    const opt = document.createElement('option');
+                    opt.value = b.file;
+                    opt.textContent = b.file + ' (' + new Date(b.modified).toLocaleString() + ')';
+                    select.appendChild(opt);
+                });
+            } catch(e){
+                const err = document.getElementById('db-error'); if (err){ err.textContent='Error listando backups: '+(e.message||e); err.style.display='block'; }
+            }
+        }
+
+        function downloadSelectedBackup(){
+            const select = document.getElementById('db-backup-select');
+            const file = select && select.value ? select.value : '';
+            if (!file){ alert('Selecciona un backup primero.'); return; }
+            // Los backups están en /backups/<file>
+            const url = window.location.origin + '/backups/' + file;
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = file;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+        }
+    </script>
+</body>
+</html>

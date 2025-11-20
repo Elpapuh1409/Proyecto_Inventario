@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guía Rápida | Inventario Win Sports</title>
+    <link rel="stylesheet" href="../CSS/styles.css">
+    <script src="../Public/JS/scripts.js" defer></script>
+    <style>
+        .guia-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 32px;
+            margin: 40px 0 0 0;
+        }
+        .guia-card {
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            padding: 32px 24px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: box-shadow 0.3s, transform 0.3s;
+            border-top: 4px solid var(--accent, #f50);
+        }
+        .guia-card:hover {
+            box-shadow: 0 12px 40px rgba(245,80,0,0.13);
+            transform: translateY(-8px) scale(1.03);
+        }
+        .guia-icon {
+            font-size: 2.5rem;
+            margin-bottom: 18px;
+            color: var(--accent, #f50);
+        }
+        .guia-card h3 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin: 0 0 10px 0;
+            color: #222;
+        }
+        .guia-card p {
+            color: #555;
+            font-size: 1rem;
+            margin: 0;
+            text-align: center;
+        }
+        .guia-note {
+            margin-top: 40px;
+            background: linear-gradient(135deg, #fff9f0 0%, #fff5e6 100%);
+            padding: 18px 24px;
+            border-radius: 10px;
+            border-left: 4px solid var(--accent, #f50);
+            color: #b05a00;
+            font-size: 1.05rem;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <header class="site-header">
+        <div class="container header-inner">
+            <h1 class="brand">Win Sports <span class="accent">Guía Rápida</span></h1>
+            <nav class ="nav">
+                <a href="./Bases_de_Datos/Base_de_Datos.html">Base de Datos</a>
+                <a href="./Identificadores/Lectores.html">Lectores</a>
+                <a href="./Notificaciones.html">Notificaciones</a>
+            </nav>
+        </div>
+    </header>
+    <main class="container" style="margin-top: 40px;">
+        <section class="database-section animate" style="width: 100%; max-width: 1200px; margin: 0 auto;">
+            <div class="section-header animate">
+                <h2 style="display: flex; align-items: center; gap: 12px;">
+                    <span style="font-size: 2rem; color: var(--accent, #f50);"></span> Guía Rápida de Uso
+                </h2>
+            </div>
+            <div class="guia-grid">
+                <div class="guia-card animate">
+                    <div class="guia-icon"></div>
+                    <h3>Registrar un nuevo elemento</h3>
+                    <p>Ve a <b>Base de Datos</b> y haz clic en <b>Nuevo Elemento</b> para agregar activos al inventario.</p>
+                </div>
+                <div class="guia-card animate">
+                    <div class="guia-icon"></div>
+                    <h3>Escanear código QR</h3>
+                    <p>Utiliza el <b>Lector QR</b> para identificar y asociar activos rápidamente mediante códigos QR.</p>
+                </div>
+                <div class="guia-card animate">
+                    <div class="guia-icon"></div>
+                    <h3>Escanear placa de vehículo</h3>
+                    <p>Accede al <b>Lector de Placas</b> para registrar y controlar vehículos en el sistema.</p>
+                </div>
+                <div class="guia-card animate">
+                    <div class="guia-icon"></div>
+                    <h3>Actualizar información</h3>
+                    <p>Edita los datos de cualquier elemento desde la base de datos para mantener la información actualizada.</p>
+                </div>
+                <div class="guia-card animate">
+                    <div class="guia-icon"></div>
+                    <h3>Consultar notificaciones</h3>
+                    <p>Revisa la sección <b>Notificaciones</b> para estar al tanto de cambios y alertas importantes.</p>
+                </div>
+                <div class="guia-card animate">
+                    <div class="guia-icon"></div>
+                    <h3>Exportar datos</h3>
+                    <p>Utiliza la opción <b>Exportar CSV</b> para descargar la base de datos y trabajar con ella en Excel u otros programas.</p>
+                </div>
+            </div>
+            <div class="guia-note animate">
+                <strong>¿Necesitas ayuda?</strong> Contacta al administrador o revisa la documentación completa para soporte avanzado.
+            </div>
+        </section>
+    </main>
+</body>
+</html>

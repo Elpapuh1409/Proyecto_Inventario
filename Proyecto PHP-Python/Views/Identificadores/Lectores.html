@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lectores | Inventario Win Sports</title>
+    <link rel="stylesheet" href="../../CSS/styles.css">
+    <script src="../../Public/JS/scripts.js" defer></script>
+    <style>
+        .reader-card {
+            flex: 1;
+            min-width: 340px;
+            max-width: 480px;
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            padding: 32px 24px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .reader-controls { width: 100%; max-width: 360px; }
+        .device-select {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: 2px solid #e8e8e8;
+            background: #f7f7f7;
+            margin: 8px 0 10px 0;
+            font-size: .95rem;
+        }
+        .status {
+            width: 100%;
+            color: #666;
+            font-size: .9rem;
+            margin: 6px 0 12px 0;
+        }
+        .video-box {
+            width: 320px; height: 200px; background: var(--secondary, #222);
+            border-radius: 12px; display: none; margin-bottom: 12px;
+        }
+        .result-box {
+            margin-bottom: 12px; color: #222; font-weight: 600; min-height: 24px;
+        }
+        .inline-actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+        .inline-actions .btn[disabled] { opacity: .5; cursor: not-allowed; }
+        .hint { font-size: .85rem; color: #888; margin-top: 6px; text-align: center; }
+    </style>
+</head>
+<body>
+    <header class="site-header">
+        <div class="container header-inner">
+            <h1 class="brand">Win Sports <span class="accent">Lectores</span></h1>
+            <nav class ="nav">
+                <a href="../index.html">Inicio</a>
+                <a href="../Bases_de_Datos/Base_de_Datos.html">Base de Datos</a>
+                <a href="./Lectores.html">Lectores</a>
+                <a href="../Guia_Rapida.html">Guía</a>
+                <a href="../Notificaciones.html">Notificaciones</a>
+            </nav>
+        </div>
+    </header>
+    <main class="container" style="margin-top: 40px;">
+        <section class="database-section animate" style="width: 100%; max-width: 1200px; margin: 0 auto; display: flex; gap: 40px; justify-content: center; flex-wrap: wrap;">
+            <div class="reader-card">
+                <div class="section-header animate" style="align-items: center;">
+                    <h2 style="display: flex; align-items: center; gap: 10px; font-size: 1.3rem;">
+                        <span style="font-size: 2rem; color: var(--accent, #f50);"></span> Lector QR
+                    </h2>
+                </div>
+                <div class="reader-controls">
+                    <select id="qr-camera" class="device-select">
+                        <option value="">Seleccionar cámara...</option>
+                    </select>
+                    <div id="qr-status" class="status">Estado: listo</div>
+                </div>
+                <video id="qr-video" class="video-box"></video>
+                <div id="qr-result" class="result-box">QR: --------</div>
+                <div class="inline-actions">
+                    <button class="btn primary" id="btn-qr-start">Iniciar</button>
+                    <button class="btn" id="btn-qr-stop" disabled>Detener</button>
+                    <button class="btn secondary" id="btn-qr-copy" disabled>Copiar</button>
+                </div>
+                <div class="hint">Consejo: usa HTTPS o localhost para acceso a cámara.</div>
+            </div>
+            <div class="reader-card">
+                <div class="section-header animate" style="align-items: center;">
+                    <h2 style="display: flex; align-items: center; gap: 10px; font-size: 1.3rem;">
+                        <span style="font-size: 2rem; color: var(--accent, #f50);"></span> Lector de Placas
+                    </h2>
+                </div>
+                <div class="reader-controls">
+                    <select id="pl-camera" class="device-select">
+                        <option value="">Seleccionar cámara</option>
+                    </select>
+                    <div id="placa-status" class="status">Estado: listo</div>
+                </div>
+                <video id="placa-video" class="video-box"></video>
+                <canvas id="placa-canvas" style="display:none;"></canvas>
+                <div id="placa-result" class="result-box">PLACA:</div>
+                <div class="inline-actions">
+                    <button class="btn primary" id="btn-placa-start">Iniciar</button>
+                    <button class="btn" id="btn-placa-capture" disabled>Capturar</button>
+                    <button class="btn" id="btn-placa-stop" disabled>Detener</button>
+                    <a id="placa-download" class="btn secondary" href="#" download="captura_placa.png" style="display:none;">Descargar</a>
+                </div>
+                <div class="hint">Para reconocimiento automático, conecta una API de LPR.</div>
+                <div id="placa-error" class="note" style="display:none; margin-top:10px; color:#b00020; border-left:4px solid #b00020;">No se pudo comunicar con el servidor.</div>
+            </div>
+        </section>
+    </main>
+    <script src="https://unpkg.com/qr-scanner@1.4.2/qr-scanner.min.js"></script>
+    <script>
+    // Utilidades
+    const isSecure = window.isSecureContext;
+    function setText(el, text) { if (el) el.textContent = text; }
+
+    // ===== Lector QR =====
+    let qrScanner;
+    const qrVideo = document.getElementById('qr-video');
+    const qrResult = document.getElementById('qr-result');
+    const qrStatus = document.getElementById('qr-status');
+    const qrCamSel = document.getElementById('qr-camera');
+    const btnQrStart = document.getElementById('btn-qr-start');
+    const btnQrStop = document.getElementById('btn-qr-stop');
+    const btnQrCopy = document.getElementById('btn-qr-copy');
+
+    async function loadQrCameras() {
+        try {
+            const cams = await QrScanner.listCameras(true);
+            qrCamSel.innerHTML = '<option value="">Seleccionar cámara...</option>' +
+                cams.map(c => `<option value="${c.id}">${c.label || 'Cámara'}</option>`).join('');
+            if (!isSecure) setText(qrStatus, 'Estado: contexto no seguro, usa HTTPS o localhost.');
+        } catch (e) {
+            setText(qrStatus, 'No se pudieron listar cámaras. Permisos denegados o no disponibles.');
+        }
+    }
+    if (qrCamSel) loadQrCameras();
+
+    function setQrUI(running) {
+        if (qrVideo) qrVideo.style.display = running ? 'block' : 'none';
+        if (btnQrStart) btnQrStart.disabled = running;
+        if (btnQrStop) btnQrStop.disabled = !running;
+        if (btnQrCopy) btnQrCopy.disabled = (qrResult && qrResult.textContent.indexOf('QR: ') !== 0);
+    }
+
+    if (btnQrStart && btnQrStop && btnQrCopy) {
+        btnQrStart.addEventListener('click', async () => {
+            try {
+                setText(qrStatus, 'Estado: iniciando escaneo...');
+                qrScanner = new QrScanner(qrVideo, result => {
+                    setText(qrResult, 'QR: ' + result);
+                    setText(qrStatus, 'Estado: código detectado.');
+                    setQrUI(false);
+                    if (qrScanner) qrScanner.stop();
+                    // Guardar lectura QR
+                    try { apiFetch(API_CAPTURE_ABS, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ field:'qr', value: String(result), context:'lectores_qr' }) }); } catch {}
+                }, { highlightScanRegion: true, highlightCodeOutline: true });
+                const camId = qrCamSel && qrCamSel.value ? qrCamSel.value : null;
+                if (camId) await qrScanner.setCamera(camId);
+                await qrScanner.start();
+                setQrUI(true);
+                setText(qrStatus, 'Estado: escaneando...');
+            } catch (e) {
+                setText(qrStatus, 'Error iniciando cámara: ' + (e.message || e));
+                setQrUI(false);
+            }
+        });
+        btnQrStop.addEventListener('click', async () => {
+            if (qrScanner) await qrScanner.stop();
+            setText(qrStatus, 'Estado: detenido.');
+            setQrUI(false);
+        });
+        btnQrCopy.addEventListener('click', async () => {
+            const text = qrResult ? qrResult.textContent.replace(/^QR:\s*/, '') : '';
+            if (!text) return;
+            try {
+                await navigator.clipboard.writeText(text);
+                setText(qrStatus, 'Copiado al portapapeles.');
+            } catch {}
+        });
+        if (qrCamSel) {
+            qrCamSel.addEventListener('change', async () => {
+                if (qrScanner && qrCamSel.value) {
+                    try { await qrScanner.setCamera(qrCamSel.value); } catch {}
+                }
+            });
+        }
+    }
+
+    // Helper API rutas absolutas/relativas
+    const API_UPLOAD_ABS = '/PHP/upload_image.php';
+    const API_UPLOAD_REL = '../../Public/PHP/upload_image.php';
+    const API_LPR_ABS = '/PHP/lpr_recognize.php';
+    const API_LPR_REL = '../../Public/PHP/lpr_recognize.php';
+    const API_LOGS_ABS = '/PHP/input_logs_list.php';
+    const API_LOGS_REL = '../../Public/PHP/input_logs_list.php';
+    const API_CAPTURE_ABS = '/PHP/input_capture.php';
+    const API_CAPTURE_REL = '../../Public/PHP/input_capture.php';
+    async function apiFetch(url, options){
+        try { const r = await fetch(url, options); if (r.ok) return r; } catch(_) {}
+        const fallback = url
+            .replace(API_UPLOAD_ABS, API_UPLOAD_REL)
+            .replace(API_LPR_ABS, API_LPR_REL)
+            .replace(API_LOGS_ABS, API_LOGS_REL)
+            .replace(API_CAPTURE_ABS, API_CAPTURE_REL);
+        return fetch(fallback, options);
+    }
+
+    // ===== Lector de Placas =====
+    const placaVideo = document.getElementById('placa-video');
+    const placaCanvas = document.getElementById('placa-canvas');
+    const placaResult = document.getElementById('placa-result');
+    const placaStatus = document.getElementById('placa-status');
+    const plCamSel = document.getElementById('pl-camera');
+    const btnPlStart = document.getElementById('btn-placa-start');
+    const btnPlCapture = document.getElementById('btn-placa-capture');
+    const btnPlStop = document.getElementById('btn-placa-stop');
+    const plDownload = document.getElementById('placa-download');
+    let placaStream;
+
+    async function loadPlCameras() {
+        try {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const cams = devices.filter(d => d.kind === 'videoinput');
+            plCamSel.innerHTML = '<option value="">Seleccionar cámara...</option>' +
+                cams.map(c => `<option value="${c.deviceId}">${c.label || 'Cámara'}</option>`).join('');
+            if (!isSecure) setText(placaStatus, 'Estado: contexto no seguro, usa HTTPS o localhost.');
+        } catch (e) { setText(placaStatus, 'No se pudieron listar cámaras.'); }
+    }
+    if (plCamSel && navigator.mediaDevices?.enumerateDevices) loadPlCameras();
+
+    function setPlUI(running) {
+        if (placaVideo) placaVideo.style.display = running ? 'block' : 'none';
+        if (btnPlStart) btnPlStart.disabled = running;
+        if (btnPlCapture) btnPlCapture.disabled = !running;
+        if (btnPlStop) btnPlStop.disabled = !running;
+    }
+
+    if (btnPlStart && btnPlCapture && btnPlStop) {
+        btnPlStart.addEventListener('click', async () => {
+            try {
+                setText(placaStatus, 'Estado: iniciando cámara...');
+                const constraints = { video: true };
+                if (plCamSel && plCamSel.value) constraints.video = { deviceId: { exact: plCamSel.value } };
+                placaStream = await navigator.mediaDevices.getUserMedia(constraints);
+                placaVideo.srcObject = placaStream;
+                await placaVideo.play();
+                setPlUI(true);
+                setText(placaStatus, 'Estado: cámara activa.');
+            } catch (e) {
+                setText(placaStatus, 'Error iniciando cámara: ' + (e.message || e));
+                setPlUI(false);
+            }
+        });        <form id="crud-form" onsubmit="return submitCrud(event)" class="crud-form-modern">
+          <input type="hidden" id="crud-id" />
+          <div class="crud-row">
+            <div class="crud-field">
+              <label for="crud-nombre">Nombre</label>
+              <input required id="crud-nombre" type="text" placeholder="Ej: Balón de fútbol" autocomplete="off" />
+            </div>
+            <div class="crud-field">
+              <label for="crud-responsable">Responsable</label>
+              <input required id="crud-responsable" type="text" placeholder="Ej: Juan Pérez" autocomplete="off" />
+            </div>
+          </div>
+          <div class="crud-row">
+            <div class="crud-field">
+              <label for="crud-estado">Estado</label>
+              <select required id="crud-estado">
+                <option value="">-- Seleccionar --</option>
+                <option>Disponible</option>
+                <option>En uso</option>
+                <option>En reparación</option>
+              </select>
+            </div>
+            <div class="crud-field">
+              <label for="crud-fecha">Fecha</label>
+              <input required id="crud-fecha" type="date" placeholder="mm/dd/yyyy" />
+            </div>
+          </div>
+          <div class="crud-actions">
+            <button class="btn primary" type="submit" id="crud-submit">Crear</button>
+            <button class="btn" type="button" id="crud-cancel" onclick="resetCrud()" style="display:none;">Cancelar</button>
+          </div>
+        </form>
+        btnPlCapture.addEventListener('click', async () => {
+            try {
+                placaCanvas.width = placaVideo.videoWidth;
+                placaCanvas.height = placaVideo.videoHeight;
+                placaCanvas.getContext('2d').drawImage(placaVideo, 0, 0);
+                const dataUrl = placaCanvas.toDataURL('image/png');
+                setText(placaStatus, 'Subiendo captura...');
+                const resp = await apiFetch(API_UPLOAD_ABS, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image: dataUrl })
+                });
+                                const text1 = await resp.text();
+                                let json;
+                                try { json = JSON.parse(text1); }
+                                catch {
+                                    alert('Error: la respuesta al subir la imagen no es JSON.\n' + text1.slice(0,200));
+                                    throw new Error('Respuesta no-JSON al subir captura');
+                                }
+                                if (!resp.ok || !json.success) {
+                                        const msg = (json && json.error) ? json.error : ('HTTP ' + resp.status);
+                                        alert('Error al subir: ' + msg + '\n' + text1.slice(0,200));
+                                        throw new Error('Error al subir: ' + msg);
+                                }
+                // Enlace de descarga a la ruta pública del servidor
+                const publicPath = json.path; // p.ej. Public/uploads/archivo.png
+                if (plDownload) {
+                    plDownload.href = '/' + publicPath;
+                    plDownload.style.display = 'inline-flex';
+                }
+                setText(placaResult, 'Guardado en ' + publicPath);
+                // Log ruta de la captura
+                try { apiFetch(API_CAPTURE_ABS, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ field:'placa_capture_path', value: publicPath, context:'lectores_placa' }) }); } catch {}
+                setText(placaStatus, 'Reconociendo placa...');
+
+                // Llamar al endpoint LPR con la misma imagen (dataUrl) y región 'co'
+                const lprResp = await apiFetch(API_LPR_ABS, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image: dataUrl, region: 'co' })
+                });
+                                const text2 = await lprResp.text();
+                                let lpr;
+                                try { lpr = JSON.parse(text2); }
+                                catch {
+                                    alert('Error: la respuesta de LPR no es JSON.\n' + text2.slice(0,200));
+                                    throw new Error('Respuesta no-JSON en LPR');
+                                }
+                                if (!lprResp.ok || !lpr.success) {
+                                        const msg = (lpr && lpr.error) ? lpr.error : ('HTTP ' + lprResp.status);
+                                        alert('LPR falló: ' + msg + '\n' + text2.slice(0,200));
+                                        throw new Error('LPR falló: ' + msg);
+                                }
+                if (lpr.plate) {
+                    const conf = lpr.score ? Math.round(lpr.score * 100) + '%' : '';
+                    setText(placaResult, 'PLACA: ' + lpr.plate + (conf ? ' (' + conf + ')' : ''));
+                    setText(placaStatus, 'Estado: reconocimiento completo.');
+                    try { apiFetch(API_CAPTURE_ABS, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ field:'placa', value: lpr.plate, context: 'score='+(lpr.score??'') }) }); } catch {}
+                } else {
+                    setText(placaResult, 'No se detectó placa.');
+                    setText(placaStatus, 'Estado: sin resultados.');
+                }
+            } catch (e) {
+                setText(placaStatus, 'Error al capturar/subir: ' + (e.message || e));
+                const errBox = document.getElementById('placa-error');
+                if (errBox) { errBox.textContent = 'Error: ' + (e.message || e); errBox.style.display = 'block'; }
+                try { apiFetch(API_CAPTURE_ABS, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ field:'placa_error', value: String((e&&e.message)||e), context:'lectores_placa' }) }); } catch {}
+            }
+        });
+        btnPlStop.addEventListener('click', () => {
+            if (placaStream) placaStream.getTracks().forEach(t => t.stop());
+            placaStream = null;
+            setPlUI(false);
+            setText(placaStatus, 'Estado: detenido.');
+        });
+        if (plCamSel) {
+            plCamSel.addEventListener('change', async () => {
+                if (!placaStream) return;
+                // Cambiar de cámara en caliente
+                try {
+                    const constraints = { video: { deviceId: { exact: plCamSel.value } } };
+                    const newStream = await navigator.mediaDevices.getUserMedia(constraints);
+                    placaStream.getTracks().forEach(t => t.stop());
+                    placaStream = newStream;
+                    placaVideo.srcObject = newStream;
+                    await placaVideo.play();
+                } catch {}
+            });
+        }
+    }
+    </script>
+        <section class="container" style="margin: 20px auto 40px; max-width: 1200px;">
+            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                <h3 style="margin:0;">Registros recientes</h3>
+                <button class="btn" id="btn-logs">Ver registros</button>
+                <input type="text" id="logs-q" class="filter-input" placeholder="Buscar en logs..." style="min-width:220px;" />
+            </div>
+            <div class="table-wrap">
+                <table class="inventory-table" id="logs-table">
+                    <thead>
+                        <tr><th>ID</th><th>Campo</th><th>Valor</th><th>Contexto</th><th>Fecha</th></tr>
+                    </thead>
+                    <tbody id="logs-tbody"></tbody>
+                </table>
+            </div>
+        </section>
+        <script>
+        function escapeHtmlLog(s){return (s||'').toString().replace(/[&<>\"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));}
+        async function loadLogs(){
+            const q = document.getElementById('logs-q').value.trim();
+            const url = API_LOGS_ABS + (q? ('?q='+encodeURIComponent(q)) : '');
+            try{
+                const res = await apiFetch(url);
+                const text = await res.text();
+                let json;
+                try { json = JSON.parse(text); }
+                catch {
+                    alert('Error: la respuesta de logs no es JSON.\n' + text.slice(0,200));
+                    throw new Error('Respuesta no-JSON en logs');
+                }
+                if(!res.ok || !json.success) {
+                    alert('Error logs: ' + (json && json.error ? json.error : 'HTTP '+res.status) + '\n' + text.slice(0,200));
+                    throw new Error(json.error||'Error logs');
+                }
+                const tb = document.getElementById('logs-tbody');
+                tb.innerHTML = (json.items||[]).map(r=>`<tr>
+                    <td>${r.id}</td>
+                    <td>${escapeHtmlLog(r.field)}</td>
+                    <td style="max-width:480px; overflow:hidden; text-overflow:ellipsis;">${escapeHtmlLog(r.value)}</td>
+                    <td>${escapeHtmlLog(r.context)}</td>
+                    <td>${escapeHtmlLog(r.created_at)}</td>
+                </tr>`).join('');
+            }catch(e){ alert('No se pudieron cargar logs: '+(e.message||e)); }
+        }
+        document.getElementById('btn-logs')?.addEventListener('click', loadLogs);
+        document.getElementById('logs-q')?.addEventListener('input', ()=>{ clearTimeout(window._lg); window._lg=setTimeout(loadLogs, 300); });
+        </script>
+</body>
+</html>
